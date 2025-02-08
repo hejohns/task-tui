@@ -1,7 +1,6 @@
-project('tasks-tui', 'cpp',
+project('task-tui', 'cpp',
   version : '0.1',
   default_options : ['warning_level=everything', 'cpp_std=c++23'])
-add_project_arguments('-fmodules-ts', language : 'cpp')
 if get_option('buildtype') == 'debug'
   add_project_arguments('-ggdb',  language : 'cpp')
 endif
@@ -18,7 +17,7 @@ ftxui_dep = [ftxui_dom_dep, ftxui_screen_dep, ftxui_component_dep]
 #ftxui_screen_dep = ftxui_subproj.dependency('screen')
 #ftxui_component_dep = ftxui_subproj.dependency('component')
 
-executable('tasks-tui',
+executable('task-tui',
            'main.cpp',
            dependencies : ftxui_dep,
            install : true)
