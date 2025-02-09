@@ -17,7 +17,10 @@ ftxui_dep = [ftxui_dom_dep, ftxui_screen_dep, ftxui_component_dep]
 #ftxui_screen_dep = ftxui_subproj.dependency('screen')
 #ftxui_component_dep = ftxui_subproj.dependency('component')
 
+boost_dep = dependency('boost')
+
 executable('task-tui',
            'main.cpp',
-           dependencies : ftxui_dep,
+           'components.cpp',
+           dependencies : [ftxui_dep, boost_dep],
            install : true)

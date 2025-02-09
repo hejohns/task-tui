@@ -1,0 +1,6 @@
+[wrap-file]
+source_url = https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz
+source_filename = boost_1_87_0.tar.gz
+directory=boost_1_87_0
+source_hash = f55c340aa49763b1925ccf02b2e83f35fdcf634c9d5164a2acb87540173c741d
+diff_files = boost/create-meson-build.patch
