@@ -2,7 +2,11 @@ project('task-tui', 'cpp',
   version : '0.1',
   default_options : ['warning_level=everything', 'cpp_std=c++23'])
 if get_option('buildtype') == 'debug'
-  add_project_arguments('-ggdb',  language : 'cpp')
+  add_global_arguments('-Wno-abi-tag',  language : 'cpp')
+  add_global_arguments('-Wno-padded',  language : 'cpp')
+  add_global_arguments('-Wno-effc++',  language : 'cpp')
+  add_global_arguments('-ggdb',  language : 'cpp')
+  add_global_arguments('-fconcepts-diagnostics-depth=10',  language : 'cpp')
 endif
 
 # I think due to the upstream packaging, the cmake wrap exposes ftxui as three seperate dependencies
@@ -22,5 +26,6 @@ boost_dep = dependency('boost')
 executable('task-tui',
            'main.cpp',
            'components.cpp',
+           'model.cpp',
            dependencies : [ftxui_dep, boost_dep],
            install : true)
