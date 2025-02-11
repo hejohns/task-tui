@@ -45,12 +45,20 @@ std::fstream open_fstream(
     return fs;
 }
 
+inline constexpr auto lam = [](int x)noexcept->int{return x + 10;};
+
 int main(){
     std::vector<int> v = {1, 2, 5, 6, 7};
     for(int x : v | std::ranges::views::transform([](int x){return x + 2;})){
         std::println("{}", x);
     }
     for(int x : task_tui::task_transform(v, [](int x){return x + 2;})){
+        std::println("{}", x);
+    }
+    for(int x : v | task_tui::task_transform(lam)){
+        std::println("{}", x);
+    }
+    for(int x : task_tui::task_transform(v, lam)){
         std::println("{}", x);
     }
     ///* load (pending and completed) task, goal, and recurring_task data */

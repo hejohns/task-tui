@@ -1,10 +1,14 @@
 #pragma once
 #include "model.hpp"
 
+#include <ctime>
 #include <ftxui/component/component.hpp>
 
 #include <boost/stl_interfaces/iterator_interface.hpp>
+#include <boost/stl_interfaces/view_adaptor.hpp>
 #include <concepts>
+#include <functional>
+#include <iterator>
 #include <ranges>
 #include <type_traits>
 
@@ -27,77 +31,60 @@ namespace task_tui {
     //}
     // This is essentially an eta expansion of transform?
     //              input                output
+
     template<
-        std::ranges::input_range R,
+        std::ranges::input_range R, // again, shouldn't matter viewable or not?
         std::regular_invocable<std::ranges::range_reference_t<R>> F
             >
-    requires
-        std::move_constructible<F>
-        // does this ever fail??
-        and std::ranges::constant_range<std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<R>>>>
-    // helper interface to inherit from
-    class TaskTransform_iter : public boost::stl_interfaces::iterator_interface<
-                                   std::forward_iterator_tag,
-                                   std::invoke_result_t<F, std::ranges::range_reference_t<R>>
-                                   > {
+    requires std::movable<F>
+    class TaskTransform_view : public std::ranges::view_interface<TaskTransform_view<R, F>> {
+        static_assert(std::ranges::constant_range<std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<R>>>>, "Does this ever fail?");
     public:
-        // iterators are required to be default constructible
-        TaskTransform_iter() = default;
-        TaskTransform_iter(std::ranges::const_iterator_t<const R&> iter, const F& f) : iter_(iter), f_(f) {}
-        constexpr auto operator*() const { return f_(*iter_); }
-        constexpr auto& operator++() { ++iter_; return *this; }
-        constexpr auto operator==(TaskTransform_iter<R, F> other) const { return iter_ == other.iter_; }
-        // this is rquired by c++'s method lookup rules, as described in the boost documentation
-        // ++(int) (postfix ++)
-        using boost::stl_interfaces::iterator_interface<std::forward_iterator_tag, std::invoke_result_t<F, std::ranges::range_reference_t<R>>>::operator++;
-    private:
-        // wraps iterator to input range
-        std::ranges::const_iterator_t<const R&> iter_;
-        F f_;
-    };
-    static_assert(std::forward_iterator<TaskTransform_iter<const std::vector<int>, decltype([](int)->int{return 0;})>>);
-
-    //// if the range isn't already a constant range, wrap it
-    // TODO: test that this makes sense for rvalue references
-    template<
-        std::ranges::input_range R,
-        std::regular_invocable<std::ranges::range_reference_t<R>> F
-        >
-    //requires std::is_reference_v<R>
-    struct TaskTransform_view : public TaskTransform_view<std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<R>>>, F> {
-        using TaskTransform_view<std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<R>>>, F>::TaskTransform_view;
-    };
-
-    // by "default", the range should be a constant range
-    template<
-        std::ranges::constant_range R,
-        std::regular_invocable<std::ranges::range_reference_t<R>> F
-            >
-    class TaskTransform_view<R, F> : public std::ranges::view_interface<TaskTransform_view<R, F>> {
+        // helper interface to inherit from
+        class TaskTransform_iter : public boost::stl_interfaces::iterator_interface<
+                                       std::forward_iterator_tag,
+                                       std::invoke_result_t<F, std::ranges::range_reference_t<R>>
+                                       > {
+        public:
+            // iterators are required to be default constructible
+            TaskTransform_iter() = default;
+            TaskTransform_iter(std::ranges::const_iterator_t<const R&> iter, const F& f) : iter_(iter), f_(f) {}
+            constexpr auto operator*() const { return f_(*iter_); }
+            constexpr auto& operator++() { ++iter_; return *this; }
+            constexpr auto operator==(TaskTransform_iter other) const { return iter_ == other.iter_; }
+            // this is rquired by c++'s method lookup rules, as described in the boost documentation
+            // ++(int) (postfix ++)
+            using boost::stl_interfaces::iterator_interface<std::forward_iterator_tag, std::invoke_result_t<F, std::ranges::range_reference_t<R>>>::operator++;
+        private:
+            // wraps iterator to input range
+            std::ranges::const_iterator_t<const R&> iter_;
+            F f_;
+        };
+        static_assert(std::forward_iterator<TaskTransform_iter>);
     public:
         // NOTE: it was considered a defect against c++20 that views had to be default constructible
         //TaskTransform_view() = default;
-        //TaskTransform_view(R&& rg, F&& f) : begin_(std::ranges::begin(rg), std::forward<F>(f)), end_(std::ranges::end(rg), std::forward<F>(f)) {}
-        // NOTE: this is where we need that views are copyable?
+        // if rg is a constant_range, then this is already fine, and could take by reference even
         TaskTransform_view(const R& rg, const F& f) : begin_(std::ranges::cbegin(rg), f), end_(std::ranges::cend(rg), f) {}
         constexpr auto begin() const { return begin_; }
         constexpr auto end() const { return end_; }
     private:
-        TaskTransform_iter<R, F> begin_;
-        TaskTransform_iter<R, F> end_;
+        TaskTransform_iter begin_;
+        TaskTransform_iter end_;
     };
 
     inline constexpr auto lam = [](int x) noexcept -> int { return 0; };
-    template<typename R>
-    concept CC = requires(R r){
-        { TaskTransform_view<R, decltype(lam)>(r, lam)/*.begin()*/ };
-    };
-    static_assert(CC<const std::vector<int> &>);
+    //template<typename R>
+    //concept CC = requires(R r){
+    //    { TaskTransform_view<R, decltype(lam)>(r, lam)/*.begin()*/ };
+    //};
+    //static_assert(CC<const std::vector<int> &>);
     static_assert(std::same_as<std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<std::vector<int>>>>, const std::vector<int> &>);
     static_assert(std::same_as<std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<const std::vector<int>>>>, const std::vector<int> &>);
     static_assert(std::same_as<std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<const std::vector<int>&>>>, const std::vector<int> &>);
     static_assert(std::ranges::constant_range<std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<const std::vector<int>>>>>);
-    //static_assert(CC<const std::vector<int>&>);
+    //static_assert(TaskTransform_view<const std::vector<int>&, decltype(lam)>::TaskTransform_iter);
+    static_assert(std::forward_iterator<TaskTransform_view<const std::vector<int>&, decltype([](int x)noexcept->int{return 0;})>::TaskTransform_iter>);
 
     /*
      * This is some syntactic sugar to make TaskTransform(_view) pipeable as a
@@ -114,7 +101,7 @@ namespace task_tui {
      */
     struct TaskTransform : public std::ranges::range_adaptor_closure<TaskTransform> {
         /*
-         * TODO: should R additionally be a view?? Why would we really care?
+         * I don't think we care if the range is viewable or not, even thought it would make the const handling slightly easier?
          * NOTE: I don't think we really care if F is regular_invocable or just
          * invocable, and c++23 concepts can't tell us the difference
          */
@@ -123,17 +110,14 @@ namespace task_tui {
             std::regular_invocable<std::ranges::range_reference_t<R>> F
                 >
         requires
-            std::convertible_to<std::ranges::range_reference_t<R>, int&/*task_tui::Task&*/>
-            and std::move_constructible<F>
+            std::convertible_to<std::ranges::range_reference_t<R>, int&/*task_tui::Task&*/> // just for an example
+            and std::movable<F>
         // use const R & to remove the need to worry about forwarding/const views/constant ranges
-        auto operator()(const R& rg, const F& f) const { // because we say this is a constexpr below
-            // for some reason, template deduction fails here if we don't specify <R, F>? why?? Something about lookup rules for templated classes?
-            return TaskTransform_view<R, F>(rg, f);
-            // this would also work, but makes the case fo view useless
-            //return TaskTransform_view<std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<R>>>, F>(rg, f);
+        auto operator()(const R& rg, const F& f) const { // const method because we say this is a constexpr below
+            return TaskTransform_view<R, std::remove_const_t<F>>(rg, f);
         }
     };
 
     // idiom to make this available
-    inline constexpr TaskTransform task_transform;
+    inline constexpr auto task_transform = boost::stl_interfaces::adaptor(TaskTransform{});
 }
