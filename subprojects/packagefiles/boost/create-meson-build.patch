@@ -5,5 +5,5 @@
 --- 1,4 ----
 + project('boost', 'cpp', version : '1.87.0')
 + 
-+ boost_dep = declare_dependency(include_directories : 'boost')
++ boost_dep = declare_dependency(include_directories : include_directories('.'))
 + meson.override_dependency('boost', boost_dep)
