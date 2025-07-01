@@ -1,5 +1,6 @@
 #include "model.hpp"
 #include "components.hpp"
+#include "ranges.hpp"
 
 #include <ftxui/component/component_base.hpp>
 #include <ftxui/component/screen_interactive.hpp>
@@ -52,13 +53,13 @@ int main(){
     for(int x : v | std::ranges::views::transform([](int x){return x + 2;})){
         std::println("{}", x);
     }
-    for(int x : task_tui::task_transform(v, [](int x){return x + 2;})){
+    for(int x : task_tui::ranges::map(v, [](int x){return x + 2;})){
         std::println("{}", x);
     }
-    for(int x : v | task_tui::task_transform(lam)){
+    for(int x : v | task_tui::ranges::map(lam)){
         std::println("{}", x);
     }
-    for(int x : task_tui::task_transform(v, lam)){
+    for(int x : task_tui::ranges::map(v, lam)){
         std::println("{}", x);
     }
     ///* load (pending and completed) task, goal, and recurring_task data */

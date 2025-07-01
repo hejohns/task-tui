@@ -27,5 +27,6 @@ executable('task-tui',
            'main.cpp',
            'components.cpp',
            'model.cpp',
+           'ranges.cpp',
            dependencies : [ftxui_dep, boost_dep],
            install : true)
